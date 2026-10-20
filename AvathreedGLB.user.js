@@ -7,6 +7,8 @@
 // @match        https://vectaria.io/*
 // @match        https://*.vectaria.io/*
 // @icon         https://vectaria.io/favicon.ico
+// @updateURL    https://raw.githubusercontent.com/CMG-works/AvathreedGLB/main/AvathreedGLB.user.js
+// @downloadURL  https://raw.githubusercontent.com/CMG-works/AvathreedGLB/main/AvathreedGLB.user.js
 // @grant        none
 // @run-at       document-idle
 // ==/UserScript==
@@ -17,7 +19,7 @@
   if (window.__AVATHREEDGLB_INITIALIZED__) return;
   window.__AVATHREEDGLB_INITIALIZED__ = true;
 
-  console.log("[AvathreedGLB] Userscript v1.4 loaded.");
+  console.log("[AvathreedGLB] Userscript v1.5 loaded.");
 
   let THREE = null;
   let GLTFExporter = null;
@@ -606,7 +608,7 @@
           <div id="v3d-status">Ready to export</div>
         </div>
         <div id="v3d-footer">
-          <span>AvathreedGLB v1.4</span>
+          <span>AvathreedGLB v1.5</span>
           <span>by PIllagerJ88</span>
         </div>
       </div>
