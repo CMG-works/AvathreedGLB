@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         AvathreedGLB
 // @namespace    https://vectaria.io/
-// @version      1.4
+// @version      1.5
 // @description  Export Vectaria.io 3D avatars to GLB format, optimized and recommended for Blender.
 // @author       PIllagerJ88
 // @match        https://vectaria.io/*
