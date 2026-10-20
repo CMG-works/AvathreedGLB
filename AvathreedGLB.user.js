@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         AvathreedGLB
 // @namespace    https://vectaria.io/
-// @version      1.5
+// @version      1.6
 // @description  Export Vectaria.io 3D avatars to GLB format, optimized and recommended for Blender.
 // @author       PIllagerJ88
 // @match        https://vectaria.io/*
@@ -19,7 +19,32 @@
   if (window.__AVATHREEDGLB_INITIALIZED__) return;
   window.__AVATHREEDGLB_INITIALIZED__ = true;
 
-  console.log("[AvathreedGLB] Userscript v1.5 loaded.");
+  console.log("[AvathreedGLB] Userscript v1.6 loaded.");
+
+  // PERSISTENT SETTINGS IN LOCALSTORAGE
+  const STORAGE_KEY = 'avathreedglb_settings_v1';
+  const defaultSettings = {
+    minimized: false,
+    posX: null,
+    posY: null
+  };
+
+  function loadSettings() {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      return saved ? Object.assign({}, defaultSettings, JSON.parse(saved)) : Object.assign({}, defaultSettings);
+    } catch (e) {
+      return Object.assign({}, defaultSettings);
+    }
+  }
+
+  function saveSettings(s) {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
+    } catch (e) {}
+  }
+
+  const v3dSettings = loadSettings();
 
   let THREE = null;
   let GLTFExporter = null;
@@ -393,7 +418,6 @@
           background: var(--v3d-bg);
           border: 1px solid var(--v3d-border);
           border-radius: 3px;
-          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
           color: var(--v3d-text);
           overflow: hidden;
         }
@@ -608,7 +632,7 @@
           <div id="v3d-status">Ready to export</div>
         </div>
         <div id="v3d-footer">
-          <span>AvathreedGLB v1.5</span>
+          <span>AvathreedGLB v1.6</span>
           <span>by PIllagerJ88</span>
         </div>
       </div>
@@ -626,13 +650,29 @@
       selectedPlayerName = select.value;
     });
 
+    // Restaurar posición y estado minimizado guardados
+    if (v3dSettings.minimized) {
+      winEl.style.display = 'none';
+      toggleBtn.style.display = 'flex';
+    }
+
+    if (v3dSettings.posX !== null && v3dSettings.posY !== null) {
+      container.style.right = 'auto';
+      container.style.left = `${v3dSettings.posX}px`;
+      container.style.top = `${v3dSettings.posY}px`;
+    }
+
     btnMinimize.addEventListener('click', () => {
       winEl.style.display = 'none';
       toggleBtn.style.display = 'flex';
+      v3dSettings.minimized = true;
+      saveSettings(v3dSettings);
     });
     toggleBtn.addEventListener('click', () => {
       winEl.style.display = 'block';
       toggleBtn.style.display = 'none';
+      v3dSettings.minimized = false;
+      saveSettings(v3dSettings);
     });
 
     let isDragging = false;
@@ -652,15 +692,22 @@
 
     function onMouseMove(e) {
       if (!isDragging) return;
+      const newLeft = Math.max(10, Math.min(window.innerWidth - 310, initLeft + (e.clientX - startX)));
+      const newTop = Math.max(10, Math.min(window.innerHeight - 300, initTop + (e.clientY - startY)));
       container.style.right = 'auto';
-      container.style.left = `${Math.max(10, initLeft + (e.clientX - startX))}px`;
-      container.style.top = `${Math.max(10, initTop + (e.clientY - startY))}px`;
+      container.style.left = `${newLeft}px`;
+      container.style.top = `${newTop}px`;
+      v3dSettings.posX = newLeft;
+      v3dSettings.posY = newTop;
     }
 
     function onMouseUp() {
-      isDragging = false;
-      document.removeEventListener('mousemove', onMouseMove);
-      document.removeEventListener('mouseup', onMouseUp);
+      if (isDragging) {
+        isDragging = false;
+        saveSettings(v3dSettings);
+        document.removeEventListener('mousemove', onMouseMove);
+        document.removeEventListener('mouseup', onMouseUp);
+      }
     }
 
     function setStatus(text, type = '') {
