@@ -404,6 +404,23 @@
           align-items: center;
           cursor: move;
         }
+        .v3d-title-box {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        }
+        .v3d-dot {
+          width: 7px;
+          height: 7px;
+          border-radius: 50%;
+          background: var(--v3d-muted);
+          transition: background 0.3s, box-shadow 0.3s;
+          flex-shrink: 0;
+        }
+        .v3d-dot.active {
+          background: #22c55e;
+          box-shadow: 0 0 6px #22c55e88;
+        }
         .v3d-title {
           font-size: 13px;
           font-weight: 600;
@@ -506,10 +523,12 @@
         .v3d-status-loading { color: var(--v3d-text-strong) !important; border-left-color: var(--v3d-accent) !important; }
         #v3d-footer {
           padding: 5px 10px 7px;
-          text-align: right;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
           font-size: 9px;
           color: var(--v3d-muted);
-          opacity: 0.7;
+          opacity: 0.75;
         }
         #avathreedglb-container button:focus-visible,
         #avathreedglb-container #v3d-toggle-btn:focus-visible {
@@ -518,11 +537,17 @@
         }
       </style>
 
-      <div id="v3d-toggle-btn">AvathreedGLB</div>
+      <div id="v3d-toggle-btn">
+        <span class="v3d-dot" id="v3d-btn-dot"></span>
+        <span>AvathreedGLB</span>
+      </div>
 
       <div id="v3d-window">
         <div id="v3d-header">
-          <div class="v3d-title">AvathreedGLB</div>
+          <div class="v3d-title-box">
+            <span class="v3d-dot" id="v3d-live-dot"></span>
+            <span class="v3d-title">AvathreedGLB</span>
+          </div>
           <button class="v3d-icon-btn" id="v3d-btn-minimize" title="Minimize">&minus;</button>
         </div>
 
@@ -580,7 +605,10 @@
 
           <div id="v3d-status">Ready to export</div>
         </div>
-        <div id="v3d-footer">by PIllagerJ88</div>
+        <div id="v3d-footer">
+          <span>AvathreedGLB v1.4</span>
+          <span>by PIllagerJ88</span>
+        </div>
       </div>
     `;
 
@@ -609,7 +637,7 @@
     let startX, startY, initLeft, initTop;
 
     header.addEventListener('mousedown', (e) => {
-      if (e.target.id === 'v3d-btn-minimize') return;
+      if (e.target.id === 'v3d-btn-minimize' || e.target.closest('#v3d-btn-minimize')) return;
       isDragging = true;
       startX = e.clientX;
       startY = e.clientY;
@@ -904,6 +932,19 @@
       try {
         createUI();
         const { gameWorld, profileStore } = getStores();
+
+        // live status dot
+        const liveDot = document.getElementById('v3d-live-dot');
+        const btnDot = document.getElementById('v3d-btn-dot');
+        const isOnline = !!(gameWorld || (profileStore?.players && profileStore.players.length > 0) || profileStore?.profile);
+        if (liveDot) {
+          if (isOnline) liveDot.classList.add('active');
+          else liveDot.classList.remove('active');
+        }
+        if (btnDot) {
+          if (isOnline) btnDot.classList.add('active');
+          else btnDot.classList.remove('active');
+        }
 
         // live detection of the profile open on screen (U menu -> search)
         const detectedCard = document.getElementById('v3d-detected-card');
