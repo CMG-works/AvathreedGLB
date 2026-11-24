@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         AvathreedGLB
 // @namespace    https://vectaria.io/
-// @version      1.6
-// @description  Export Vectaria.io 3D avatars to GLB format, optimized and recommended for Blender.
+// @version      1.8
+// @description  Export Vectaria.io 3D avatars to GLB format, optimized for Blender and Blockbench.
 // @author       PIllagerJ88
 // @match        https://vectaria.io/*
 // @match        https://*.vectaria.io/*
@@ -19,7 +19,7 @@
   if (window.__AVATHREEDGLB_INITIALIZED__) return;
   window.__AVATHREEDGLB_INITIALIZED__ = true;
 
-  console.log("[AvathreedGLB] Userscript v1.6 loaded.");
+  console.log("[AvathreedGLB] Userscript v1.8 loaded.");
 
   // PERSISTENT SETTINGS IN LOCALSTORAGE
   const STORAGE_KEY = 'avathreedglb_settings_v1';
@@ -130,7 +130,7 @@
       }
     }
 
-    // auto-fix transparency for blender:
+    // auto fix transparency for blender
     if (gltf.materials) {
       for (const mat of gltf.materials) {
         if (mat.pbrMetallicRoughness?.baseColorTexture) {
@@ -140,6 +140,26 @@
             mat.doubleSided = true;
             modified = true;
           }
+        }
+      }
+    }
+
+    // Blockbench & DCC hierarchy sanitizer
+    if (gltf.nodes) {
+      const originalNodeCount = gltf.nodes.length;
+      for (let i = 0; i < originalNodeCount; i++) {
+        const node = gltf.nodes[i];
+        if (node.mesh !== undefined && node.children && node.children.length > 0) {
+          const meshIndex = node.mesh;
+          delete node.mesh;
+          const childMeshNode = {
+            name: (node.name || 'node') + '_Mesh',
+            mesh: meshIndex
+          };
+          const newIndex = gltf.nodes.length;
+          gltf.nodes.push(childMeshNode);
+          node.children.unshift(newIndex);
+          modified = true;
         }
       }
     }
@@ -373,7 +393,7 @@
 
     container.innerHTML = `
       <style>
-        /* minimalist dark theme: flat surfaces, square corners, neutral greys, single blue accent -lichess style >BD-*/
+        /* minimalist dark theme: flat surfaces, square corners, neutral greys, single blue accent*/
         #avathreedglb-container {
           --v3d-bg: #161512;
           --v3d-panel: #262421;
@@ -384,7 +404,7 @@
           --v3d-muted: #7c7a77;
           --v3d-accent: #3692e7;
           --v3d-accent-hover: #4aa0f0;
-          --v3d-success: #759900;
+          --v3d-success: #22c55e;
           --v3d-error: #cc3333;
           position: fixed;
           top: 60px;
@@ -444,7 +464,7 @@
           flex-shrink: 0;
         }
         .v3d-dot.active {
-          background: #22c55e;
+          background: var(--v3d-success);
           box-shadow: 0 0 6px #22c55e88;
         }
         .v3d-title {
@@ -632,7 +652,7 @@
           <div id="v3d-status">Ready to export</div>
         </div>
         <div id="v3d-footer">
-          <span>AvathreedGLB v1.6</span>
+          <span>AvathreedGLB v1.8</span>
           <span>by PIllagerJ88</span>
         </div>
       </div>
@@ -650,7 +670,6 @@
       selectedPlayerName = select.value;
     });
 
-    // Restaurar posición y estado minimizado guardados
     if (v3dSettings.minimized) {
       winEl.style.display = 'none';
       toggleBtn.style.display = 'flex';
@@ -668,19 +687,14 @@
       v3dSettings.minimized = true;
       saveSettings(v3dSettings);
     });
-    toggleBtn.addEventListener('click', () => {
-      winEl.style.display = 'block';
-      toggleBtn.style.display = 'none';
-      v3dSettings.minimized = false;
-      saveSettings(v3dSettings);
-    });
 
     let isDragging = false;
+    let hasMoved = false;
     let startX, startY, initLeft, initTop;
 
-    header.addEventListener('mousedown', (e) => {
-      if (e.target.id === 'v3d-btn-minimize' || e.target.closest('#v3d-btn-minimize')) return;
+    function startDrag(e) {
       isDragging = true;
+      hasMoved = false;
       startX = e.clientX;
       startY = e.clientY;
       const rect = container.getBoundingClientRect();
@@ -688,12 +702,37 @@
       initTop = rect.top;
       document.addEventListener('mousemove', onMouseMove);
       document.addEventListener('mouseup', onMouseUp);
+    }
+
+    header.addEventListener('mousedown', (e) => {
+      if (e.target.id === 'v3d-btn-minimize' || e.target.closest('#v3d-btn-minimize')) return;
+      startDrag(e);
+    });
+
+    toggleBtn.addEventListener('mousedown', (e) => {
+      startDrag(e);
+    });
+
+    toggleBtn.addEventListener('click', (e) => {
+      if (hasMoved) return;
+      winEl.style.display = 'block';
+      toggleBtn.style.display = 'none';
+      v3dSettings.minimized = false;
+      saveSettings(v3dSettings);
     });
 
     function onMouseMove(e) {
       if (!isDragging) return;
-      const newLeft = Math.max(10, Math.min(window.innerWidth - 310, initLeft + (e.clientX - startX)));
-      const newTop = Math.max(10, Math.min(window.innerHeight - 300, initTop + (e.clientY - startY)));
+      const dx = e.clientX - startX;
+      const dy = e.clientY - startY;
+      if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
+        hasMoved = true;
+      }
+      const rect = container.getBoundingClientRect();
+      const maxLeft = Math.max(0, window.innerWidth - rect.width);
+      const maxTop = Math.max(0, window.innerHeight - rect.height);
+      const newLeft = Math.max(0, Math.min(maxLeft, initLeft + dx));
+      const newTop = Math.max(0, Math.min(maxTop, initTop + dy));
       container.style.right = 'auto';
       container.style.left = `${newLeft}px`;
       container.style.top = `${newTop}px`;
@@ -812,7 +851,7 @@
 
         let activeSkins = player.activeSkins;
 
-        // if we don't have their skins live, request them from the server via getProfile
+        // if don't have their skins live, request them from the server via getProfile
         if (!activeSkins || activeSkins.length === 0) {
           if (profileStore) {
             profileStore.profile = null;
